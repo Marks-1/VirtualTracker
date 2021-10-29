@@ -10,6 +10,47 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
+// creating new workout
+class WorkOut {
+    date = new Date();
+    // creating a new id
+    id = (Date.now() + '').slice(-10);
+
+    constructor(coords, distance, duration) {
+        this.coords = coords;  //[lat, lng]
+        this.distance = distance; //km
+        this.duration = duration; //min
+    }
+}
+
+class Cycling extends WorkOut {
+    constructor(coords, distance, duration, cadence) {
+        super(coords, distance, duration);
+        this.cadence = cadence; //the number of revolutions of the crank per min while cycling
+        this.calcSpeed();
+    }
+    // speed  km/h
+    calcSpeed() {
+        this.speed = this.distance / (this.duration / 60);
+    }
+}
+class Running extends WorkOut {
+    constructor(coords, distance, duration, elevationGain) {
+        super(coords, distance, duration);
+        this.elevationGain = elevationGain;
+        this.calcPace();  //no need for return in calcPace
+    }
+    // pace min/km
+    calcPace() {
+        this.pace = this.duration / this.distance;
+    }
+}
+
+const running = new Running([-39, 56], 30, 10, 128)
+console.log(running);
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//................APPLICATION ARCHITECTURE...................../////////////////////////
 
 class App {
     // private
@@ -56,8 +97,8 @@ class App {
     }
 
     _toggleElevationField() {
-        inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
         inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
+        inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
     }
 
     _newWorkout(e) {
