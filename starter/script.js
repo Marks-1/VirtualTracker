@@ -16,6 +16,7 @@ class WorkOut {
 }
 
 class Cycling extends WorkOut {
+    type = 'cycling';
     constructor(coords, distance, duration, cadence) {
         super(coords, distance, duration);
         this.cadence = cadence; //the number of revolutions of the crank per min while cycling
@@ -27,6 +28,7 @@ class Cycling extends WorkOut {
     }
 }
 class Running extends WorkOut {
+    type = 'running';
     constructor(coords, distance, duration, elevationGain) {
         super(coords, distance, duration);
         this.elevationGain = elevationGain;
@@ -38,8 +40,8 @@ class Running extends WorkOut {
     }
 }
 
-const running = new Running([-39, 56], 30, 10, 128)
-console.log(running);
+// const running = new Running([-39, 56], 30, 10, 128)
+// console.log(running);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //................APPLICATION ARCHITECTURE...................../////////////////////////
@@ -152,7 +154,14 @@ class App {
             console.log(workout);
 
         // render workout on map as a maker //display maker
-        L.marker([lat, lng])
+        this.renderWorkOutMarker(workout);
+        
+        //Hide form + clear input fields
+        inputDistance.value = inputCadence.value = inputDuration.value = inputElevation.value = '';
+    }
+    renderWorkOutMarker(workout) {
+        
+        L.marker(workout.coords)
         .addTo(this.#map)
         .bindPopup(
             L.popup({
@@ -160,14 +169,11 @@ class App {
                 minWidth: 100,
                 autoClose: false,
                 closeOnClick: false,
-                className: 'running-popup'
+                className: `${workout.type}-popup`,
             })
         )
-        .setPopupContent('Workout')
+        .setPopupContent('workout')
         .openPopup();
-            
-        //Hide form + clear input fields
-        inputDistance.value = inputCadence.value = inputDuration.value = inputElevation.value = '';
     }
 }
 

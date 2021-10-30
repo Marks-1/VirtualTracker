@@ -198,6 +198,6 @@ body {
   }
 
   .cycling-popup .leaflet-popup-content-wrapper {
-      border-left: var(--color-brand--1);
+      border-left: 5px solid var(--color-brand--1);
   }
   
