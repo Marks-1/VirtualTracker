@@ -1,42 +1,60 @@
-'use strict'
-
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+'use strict';
 
 // creating new workout
 class WorkOut {
     date = new Date();
     // creating a new id
     id = (Date.now() + '').slice(-10);
+    clicks = 0;
 
     constructor(coords, distance, duration) {
         this.coords = coords;  //[lat, lng]
         this.distance = distance; //km
         this.duration = duration; //min
     }
+
+    _setDescription() {
+        // prettier-ignore
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
+            months[this.date.getMonth()]
+        } ${this.date.getDate()}`;
+    }
+
+    click() {
+        this.clicks++;
+      }
 }
 
 class Cycling extends WorkOut {
-    type = 'cycling';
+    type = 'running';
+
     constructor(coords, distance, duration, cadence) {
         super(coords, distance, duration);
         this.cadence = cadence; //the number of revolutions of the crank per min while cycling
-        this.calcSpeed();
+        this.calcPace();
+        this._setDescription();
     }
-    // speed  km/h
-    calcSpeed() {
-        this.speed = this.distance / (this.duration / 60);
+    calcPace() {
+        // min/km
+        this.pace = this.duration / this.distance;
+        return this.pace;
     }
 }
 class Running extends WorkOut {
-    type = 'running';
+    type = 'cycling';
+
     constructor(coords, distance, duration, elevationGain) {
         super(coords, distance, duration);
         this.elevationGain = elevationGain;
-        this.calcPace();  //no need for return in calcPace
+        this.calcSpeed();  //no need for return in calcSpeed
+        this._setDescription();
     }
-    // pace min/km
-    calcPace() {
-        this.pace = this.duration / this.distance;
+    calcSpeed() {
+        // speed km/hr
+        this.speed = this.distance / (this.duration / 60);
+        return this.speed;
     }
 }
 
@@ -57,21 +75,31 @@ class App {
     // private
     #map;
     #mapEvent;
+    #mapZoomLevel = 13;
     #workouts = [];
 
     constructor() {
+        // Get user's position
         this._getPosition();
 
-        form.addEventListener('submit',this._newWorkout.bind(this));
+        // Get data from local storage
+        this._getLocalStorage();
+
+        // Attach event handlers
+        form.addEventListener('submit', this._newWorkout.bind(this));
+        inputType.addEventListener('change', this._toggleElevationField);
+        containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
 
         //toggle between cycling and running
-        inputType.addEventListener('change', this._toggleElevationField.bind());
+        // inputType.addEventListener('change', this._toggleElevationField.bind());
     }
 
     _getPosition(){
         if(navigator.geolocation)
-            navigator.geolocation.getCurrentPosition(this._loadMap.bind(this), function(){
-            alert('Could not get your location')
+            navigator.geolocation.getCurrentPosition(
+                this._loadMap.bind(this), 
+                function(){
+                    alert('Could not get your position')
             }
         );
     }
@@ -79,16 +107,21 @@ class App {
     _loadMap(position) {
         const { latitude } = position.coords;
         const { longitude } = position.coords;
-        console.log(`https://www.google.co.ke/maps/@${latitude},${longitude}`);
+        // console.log(`https://www.google.co.ke/maps/@${latitude},${longitude}`);
         const coords = [latitude, longitude];
         // leaflet code
-        this.#map = L.map('map').setView(coords, 13);
+        this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
         L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
             attribution: 
                 '&copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(this.#map);
+
         //Handling click on map
         this.#map.on('click', this._showForm.bind(this)); 
+
+        this.#workouts.forEach(work => {
+            this._renderWorkOutMarker(work);
+        });
     }
          
 
@@ -98,16 +131,24 @@ class App {
         inputDistance.focus();  
     }
 
+    _hideForm() {
+        // Empty inputs
+        inputDistance.value = inputDuration.value = inputCadence.value = inputElevation.value = '';
+    
+        form.style.display = 'none';
+        form.classList.add('hidden');
+        setTimeout(() => (form.style.display = 'grid'), 1000);
+      }
+
     _toggleElevationField() {
-        inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
         inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
+        inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
     }
 
     _newWorkout(e) {
         // helper functions
         const validInputs = (...inputs) => 
             inputs.every(inp => Number.isFinite(inp));
-
         // no negative for distance, duration and cadence
         const allPositive = (...inputs) => inputs.every(inp => inp > 0);
 
@@ -146,6 +187,7 @@ class App {
                 !allPositive(distance, duration)
                 )
                 return alert("Inputs have to be positive numbers!");
+
                 workout = new Cycling([lat, lng], distance, duration, elevation);
             }
             
